@@ -1,0 +1,56 @@
+version: '3.3'
+
+services:
+
+  example:
+    image: ${example_image} # this
+    build: # or this
+      context: ${build}/example
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - ${env_file}/example.env
+    environment:
+      - ENVIRONMENT_ONE=hello
+    secrets:
+      - example_somepassword
+    volumes:
+      - ${config}/example_config.json:/config.json
+      - ${volume}/example/data:/data
+    ports:
+      - 80:80
+    networks:
+      default:
+      traefik:
+    labels:
+      - traefik.enable=true
+      # HTTP Router
+      - traefik.http.routers.http_example.rule=Host(`${example_host}`)
+      - traefik.http.routers.http_example.entrypoints=web
+      - traefik.http.routers.http_example.middlewares=defaultchain@file,redirectToHttps@file
+      # HTTPS Router
+      - traefik.http.routers.https_example.rule=Host(`${example_host}`)
+      - traefik.http.routers.https_example.entrypoints=websecure
+      - traefik.http.routers.https_example.middlewares=defaultchain@file,redirectToHttps@file
+      - traefik.http.routers.https_example.service=example
+      - traefik.http.routers.https_example.tls=true
+      - traefik.http.routers.https_example.tls.certresolver=hetzner01
+      - traefik.http.routers.https_example.tls.domains[0].main=${example_host}
+      # Service Service
+      - traefik.http.services.example.loadbalancer.server.port=${example_port}
+      - traefik.http.services.example.loadbalancer.server.scheme=${example_scheme}
+      - traefik.http.services.example.loadbalancer.healthcheck.interval=10s
+      - traefik.http.services.example.loadbalancer.healthcheck.port=${example_port}
+      - traefik.http.services.example.loadbalancer.healthcheck.scheme=${example_scheme}
+      - traefik.http.services.example.loadbalancer.sticky.cookie=true
+      - traefik.http.services.example.loadbalancer.passhostheader=true
+
+networks:
+  traefik:
+    external:
+      name: traefik_bridge
+
+secrets:
+  example_somepassword:
+    file: ${secret}/example_somepassword.txt # some may have sample configs - 'example_somepassword.txt.sample'
+      
